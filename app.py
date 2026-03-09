@@ -57,7 +57,7 @@ def get_applied_jobs():
                 })
         return jsonify(jobs)
     except FileNotFoundError:
-        return jsonify({"error": "No applications history found"}), 404
+        return jsonify([])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
