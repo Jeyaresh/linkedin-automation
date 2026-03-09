@@ -237,6 +237,38 @@
             font-size: 13px;
             margin-top: 8px;
         }
+        .activity-log {
+            margin-top: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .activity-log-header {
+            background: #f8f9fa;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .activity-log-header:hover { background: #e9ecef; }
+        .activity-log-body {
+            max-height: 220px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            padding: 12px;
+            line-height: 1.5;
+        }
+        .activity-log-body .log-line {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .activity-log-body .log-line:empty { display: none; }
     </style>
 </head>
 <body>
@@ -265,6 +297,15 @@
                 <button id="startBtn" class="btn btn-primary" onclick="startBot()">Start Auto Apply</button>
                 <button id="stopBtn" class="btn btn-danger" onclick="stopBot()" style="display: none;">Stop Apply</button>
                 <button class="btn btn-refresh" onclick="loadJobs()">Refresh List</button>
+            </div>
+        </div>
+        <div id="activityLogSection" class="activity-log" style="display: none;">
+            <div class="activity-log-header" onclick="toggleActivityLog()">
+                <span>Activity log</span>
+                <span id="activityLogToggle">▼</span>
+            </div>
+            <div id="activityLogBody" class="activity-log-body">
+                <div class="log-line">Waiting for activity...</div>
             </div>
         </div>
         <h2>Applied Jobs History</h2>
@@ -298,6 +339,35 @@
         let sortOrder = 'asc';
         let jobsData = [];
         let statusInterval = null;
+        let logsInterval = null;
+        let activityLogExpanded = true;
+
+        function toggleActivityLog() {
+            activityLogExpanded = !activityLogExpanded;
+            document.getElementById('activityLogBody').style.display = activityLogExpanded ? 'block' : 'none';
+            document.getElementById('activityLogToggle').textContent = activityLogExpanded ? '▼' : '▶';
+        }
+
+        function updateActivityLog() {
+            fetch('/bot/logs')
+                .then(r => r.json())
+                .then(d => {
+                    const body = document.getElementById('activityLogBody');
+                    const lines = (d.logs || []).filter(Boolean);
+                    if (lines.length === 0) {
+                        body.innerHTML = '<div class="log-line">Waiting for activity...</div>';
+                    } else {
+                        body.innerHTML = lines.map(l => '<div class="log-line">' + escapeHtml(String(l)) + '</div>').join('');
+                        body.scrollTop = body.scrollHeight;
+                    }
+                })
+                .catch(() => {});
+        }
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
 
         function updateStatus(data) {
             if (!data || !data.status) return;
@@ -313,8 +383,11 @@
                 stopBtn.style.display = 'inline-block';
                 document.getElementById('linkedinUsername').disabled = true;
                 document.getElementById('linkedinPassword').disabled = true;
+                document.getElementById('activityLogSection').style.display = 'block';
                 if (!statusInterval) {
                     startDialogPolling();
+                    updateActivityLog();
+                    logsInterval = setInterval(updateActivityLog, 2500);
                     statusInterval = setInterval(() => {
                         fetch('/status').then(r => r.json()).then(d => {
                             updateStatus(d);
@@ -325,7 +398,7 @@
                                 stopDialogPolling();
                             }
                         });
-                    }, 8000);
+                    }, 4000);
                     checkBotDialog();
                 }
             } else {
@@ -336,7 +409,12 @@
                 stopBtn.style.display = 'none';
                 document.getElementById('linkedinUsername').disabled = false;
                 document.getElementById('linkedinPassword').disabled = false;
+                document.getElementById('activityLogSection').style.display = 'none';
                 stopDialogPolling();
+                if (logsInterval) {
+                    clearInterval(logsInterval);
+                    logsInterval = null;
+                }
                 if (statusInterval) {
                     clearInterval(statusInterval);
                     statusInterval = null;

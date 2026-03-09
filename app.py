@@ -13,6 +13,9 @@ CORS(app)
 
 PATH = 'all excels/'
 BOT_PROCESS = None
+BOT_LOGS = []
+BOT_LOGS_LOCK = threading.Lock()
+BOT_LOGS_MAX = 150
 
 # Bot dialog state: {dialog_id: {type, title, message, buttons, response?}}
 BOT_DIALOGS = {}
@@ -127,14 +130,34 @@ def start_bot():
         env["LINKEDIN_USERNAME"] = username
         env["LINKEDIN_PASSWORD"] = password
 
+        with BOT_LOGS_LOCK:
+            BOT_LOGS.clear()
+            BOT_LOGS.append(f"[{datetime.now().strftime('%H:%M:%S')}] Starting bot...")
+
         BOT_PROCESS = subprocess.Popen(
-            [python_cmd, 'runAiBot.py'],
+            [python_cmd, '-u', 'runAiBot.py'],
             cwd=project_root,
             env=env,
-            stdout=None,
-            stderr=None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
             start_new_session=True
         )
+
+        def _read_bot_logs():
+            try:
+                for line in iter(BOT_PROCESS.stdout.readline, ''):
+                    line = line.rstrip()
+                    if line:
+                        with BOT_LOGS_LOCK:
+                            BOT_LOGS.append(line)
+                            if len(BOT_LOGS) > BOT_LOGS_MAX:
+                                BOT_LOGS.pop(0)
+            except (ValueError, OSError):
+                pass
+
+        threading.Thread(target=_read_bot_logs, daemon=True).start()
         return jsonify({"message": "Auto-apply bot started", "status": "running"}), 200
     except Exception as e:
         return jsonify({"error": str(e), "status": "error"}), 500
@@ -198,6 +221,14 @@ def bot_check_response():
             del BOT_DIALOGS[dialog_id]
             return jsonify({"ready": True, "response": resp})
     return jsonify({"ready": False})
+
+
+@app.route('/bot/logs')
+def bot_logs():
+    """Returns recent bot activity logs (last N lines)."""
+    with BOT_LOGS_LOCK:
+        lines = list(BOT_LOGS)
+    return jsonify({"logs": lines})
 
 
 @app.route('/bot/pending-dialog')
