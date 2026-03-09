@@ -125,9 +125,21 @@ def manual_login_retry(is_logged_in: callable, limit: int = 2) -> None:
     '''
     Function to ask and validate manual login
     '''
+    # In cloud/headless mode, user cannot manually log in - exit after one attempt
+    if os.environ.get('RAILWAY_ENVIRONMENT'):
+        print_lg("Seems like you're not logged in!")
+        print_lg("LinkedIn often blocks headless/automated browsers (captcha, security checks).")
+        print_lg("For cloud deployment, consider running the bot locally where you can complete login manually.")
+        return
+
     count = 0
     while not is_logged_in():
-        from pyautogui import alert
+        try:
+            from modules.bot_dialog import web_alert
+            _alert = web_alert
+        except ImportError:
+            from pyautogui import alert
+            _alert = lambda t, m, b: alert(text=m, title=t, button=b)
         print_lg("Seems like you're not logged in!")
         button = "Confirm Login"
         message = 'After you successfully Log In, please click "{}" button below.'.format(button)
@@ -135,7 +147,9 @@ def manual_login_retry(is_logged_in: callable, limit: int = 2) -> None:
             button = "Skip Confirmation"
             message = 'If you\'re seeing this message even after you logged in, Click "{}". Seems like auto login confirmation failed!'.format(button)
         count += 1
-        if alert(message, "Login Required", button) and count > limit: return
+        _alert("Login Required", message, button)
+        if count > limit:
+            return
 
 
 
