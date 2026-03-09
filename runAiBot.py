@@ -15,6 +15,18 @@ version:    24.12.29.12.30
 
 # Imports
 import os
+import sys
+
+# Stub pyautogui in headless/cloud to avoid X display/Xauthority errors
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    import types
+    sys.modules['pyautogui'] = types.SimpleNamespace(
+        FAILSAFE=False,
+        press=lambda x: None,
+        alert=lambda *a, **k: None,
+        confirm=lambda *a, **k: "OK",
+    )
+
 import csv
 import re
 import pyautogui
