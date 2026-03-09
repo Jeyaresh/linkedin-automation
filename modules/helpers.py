@@ -154,32 +154,43 @@ def calculate_date_posted(time_string: str) -> datetime | None | ValueError:
     * 1 month ago
     * 1 year ago
     '''
-    time_string = time_string.strip()
+    time_string = (time_string or "").strip()
+    if not time_string:
+        return None
     # print_lg(f"Trying to calculate date job was posted from '{time_string}'")
     now = datetime.now()
-    if "second" in time_string:
-        seconds = int(time_string.split()[0])
-        date_posted = now - timedelta(seconds=seconds)
-    elif "minute" in time_string:
-        minutes = int(time_string.split()[0])
-        date_posted = now - timedelta(minutes=minutes)
-    elif "hour" in time_string:
-        hours = int(time_string.split()[0])
-        date_posted = now - timedelta(hours=hours)
-    elif "day" in time_string:
-        days = int(time_string.split()[0])
-        date_posted = now - timedelta(days=days)
-    elif "week" in time_string:
-        weeks = int(time_string.split()[0])
-        date_posted = now - timedelta(weeks=weeks)
-    elif "month" in time_string:
-        months = int(time_string.split()[0])
-        date_posted = now - timedelta(days=months * 30)
-    elif "year" in time_string:
-        years = int(time_string.split()[0])
-        date_posted = now - timedelta(days=years * 365)
-    else:
-        date_posted = None
+    try:
+        first_word = time_string.split()[0] if time_string.split() else ""
+        if not first_word or not first_word.isdigit():
+            return None
+    except (IndexError, AttributeError):
+        return None
+    try:
+        if "second" in time_string:
+            seconds = int(time_string.split()[0])
+            date_posted = now - timedelta(seconds=seconds)
+        elif "minute" in time_string:
+            minutes = int(time_string.split()[0])
+            date_posted = now - timedelta(minutes=minutes)
+        elif "hour" in time_string:
+            hours = int(time_string.split()[0])
+            date_posted = now - timedelta(hours=hours)
+        elif "day" in time_string:
+            days = int(time_string.split()[0])
+            date_posted = now - timedelta(days=days)
+        elif "week" in time_string:
+            weeks = int(time_string.split()[0])
+            date_posted = now - timedelta(weeks=weeks)
+        elif "month" in time_string:
+            months = int(time_string.split()[0])
+            date_posted = now - timedelta(days=months * 30)
+        elif "year" in time_string:
+            years = int(time_string.split()[0])
+            date_posted = now - timedelta(days=years * 365)
+        else:
+            date_posted = None
+    except (ValueError, IndexError):
+        return None
     return date_posted
     
 

@@ -39,7 +39,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.remote.webelement import WebElement
-from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException, NoSuchWindowException, ElementNotInteractableException
+from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException, NoSuchWindowException, ElementNotInteractableException, StaleElementReferenceException
 
 from config.personals import *
 from config.questions import *
@@ -272,7 +272,8 @@ def get_page_info() -> tuple[WebElement | None, int | None]:
     try:
         pagination_element = try_find_by_classes(driver, ["jobs-search-pagination__pages", "artdeco-pagination", "artdeco-pagination__pages"])
         scroll_to_view(driver, pagination_element)
-        current_page = int(pagination_element.find_element(By.XPATH, "//button[contains(@class, 'active')]").text)
+        active_text = pagination_element.find_element(By.XPATH, "//button[contains(@class, 'active')]").text.strip()
+        current_page = int(active_text) if active_text else 1
     except Exception as e:
         print_lg("Failed to find Pagination element, hence couldn't scroll till end!")
         pagination_element = None
@@ -363,7 +364,15 @@ def extract_years_of_experience(text: str) -> int:
     if len(matches) == 0: 
         print_lg(f'\n{text}\n\nCouldn\'t find experience requirement in About the Job!')
         return 0
-    return max([int(match) for match in matches if int(match) <= 12])
+    valid = []
+    for m in matches:
+        try:
+            n = int(m)
+            if 0 < n <= 12:
+                valid.append(n)
+        except ValueError:
+            pass
+    return max(valid) if valid else 0
 
 
 
@@ -929,7 +938,8 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                         continue
                     except Exception as e:
                         print_lg("Failed to scroll to About Company!")
-                        # print_lg(e)
+                        skip_count += 1
+                        continue
 
 
 
@@ -1095,6 +1105,9 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                     print_lg(f"\n>-> Didn't find Page {current_page+1}. Probably at the end page of results!\n")
                     break
 
+        except StaleElementReferenceException:
+            print_lg("Stale element - refreshing job list and retrying...")
+            buffer(2)
         except Exception as e:
             print_lg("Failed to find Job listings!")
             critical_error_log("In Applier", e)
