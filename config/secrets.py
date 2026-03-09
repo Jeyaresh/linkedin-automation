@@ -16,9 +16,10 @@ version:    24.12.3.10.30
 ###################################################### CONFIGURE YOUR TOOLS HERE ######################################################
 
 
-# Login Credentials for LinkedIn (Optional)
-username = "username@example.com"       # Enter your username in the quotes
-password = "example_password"           # Enter your password in the quotes
+# Login Credentials for LinkedIn (Optional - enter via UI when using web app)
+# When running via web UI, credentials are entered there. When running runAiBot.py directly, set these.
+username = ""       # Email or phone for LinkedIn
+password = ""       # LinkedIn password
 
 
 ## Artificial Intelligence (Beta Not-Recommended)

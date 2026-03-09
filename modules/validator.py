@@ -149,15 +149,22 @@ def validate_search() -> None | ValueError | TypeError:
 
 
 from config.secrets import *
+import os
 def validate_secrets() -> None | ValueError | TypeError:
     '''
     Validates all variables in the `/config/secrets.py` file.
+    Username/password are optional (min 0) - use web UI or config. When from env vars, validate those.
     '''
     global __validation_file_path
     __validation_file_path = "config/secrets.py"
 
-    check_string(username, "username", min_length=5)
-    check_string(password, "password", min_length=5)
+    # Credentials: use env vars if set (from web UI), else config. Allow empty for manual/saved login.
+    uname = os.environ.get("LINKEDIN_USERNAME") or username
+    pwd = os.environ.get("LINKEDIN_PASSWORD") or password
+    if uname:
+        check_string(uname, "username", min_length=5)
+    if pwd:
+        check_string(pwd, "password", min_length=5)
 
     check_boolean(use_AI, "use_AI")
     check_string(llm_api_url, "llm_api_url", min_length=5)

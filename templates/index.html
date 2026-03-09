@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Applied Jobs</title>
+    <title>LinkedIn Auto Job Applier</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         table { 
@@ -29,6 +29,87 @@
             max-width: 1200px;
             margin: 0 auto;
         }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .header-row h1 { margin: 0; }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background: #0a66c2;
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #004182;
+        }
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-refresh {
+            background: #f3f2ef;
+            color: #333;
+        }
+        .btn-refresh:hover {
+            background: #e5e4e0;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .status-running {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-idle {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        .status-running .status-dot { background: #28a745; }
+        .status-idle .status-dot { background: #6c757d; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .empty-msg {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
         .sl-column {
             width: 50px;
             text-align: center;
@@ -51,11 +132,142 @@
             color: #4CAF50;
             font-weight: bold;
         }
+        /* Styled modal - dark theme */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-dialog {
+            background: #2d2d2d;
+            color: #e5e5e5;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+        .modal-message {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 24px;
+            white-space: pre-wrap;
+            color: #d0d0d0;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .modal-btn-primary {
+            background: #0a66c2;
+            color: white;
+        }
+        .modal-btn-primary:hover { background: #004182; }
+        .modal-btn-secondary {
+            background: #404040;
+            color: #e5e5e5;
+        }
+        .modal-btn-secondary:hover { background: #505050; }
+        .modal-btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .modal-btn-danger:hover { background: #c82333; }
+        .credentials-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .credentials-card h3 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #495057;
+        }
+        .credentials-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .cred-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .cred-field label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .cred-field input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        .cred-field input:focus {
+            outline: none;
+            border-color: #0a66c2;
+        }
+        .cred-error {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Applied Jobs History</h1>
+        <div class="credentials-card">
+            <h3>LinkedIn Login <span style="font-weight: normal; color: #6c757d;">(credentials are not stored)</span></h3>
+            <div class="credentials-row">
+                <div class="cred-field">
+                    <label for="linkedinUsername">Email or Phone</label>
+                    <input type="text" id="linkedinUsername" placeholder="Enter your LinkedIn email or phone" autocomplete="username">
+                </div>
+                <div class="cred-field">
+                    <label for="linkedinPassword">Password</label>
+                    <input type="password" id="linkedinPassword" placeholder="Enter your LinkedIn password" autocomplete="current-password">
+                </div>
+            </div>
+            <div id="credError" class="cred-error" style="display: none;"></div>
+        </div>
+        <div class="header-row">
+            <h1>LinkedIn Auto Job Applier</h1>
+            <div class="controls">
+                <span id="statusBadge" class="status-badge status-idle">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Idle</span>
+                </span>
+                <button id="startBtn" class="btn btn-primary" onclick="startBot()">Start Auto Apply</button>
+                <button id="stopBtn" class="btn btn-danger" onclick="stopBot()" style="display: none;">Stop Apply</button>
+                <button class="btn btn-refresh" onclick="loadJobs()">Refresh List</button>
+            </div>
+        </div>
+        <h2>Applied Jobs History</h2>
         <table id="jobsTable">
             <thead>
                 <tr>
@@ -74,12 +286,197 @@
         </table>
     </div>
 
+    <div id="botModalOverlay" class="modal-overlay">
+        <div class="modal-dialog">
+            <div id="botModalTitle" class="modal-title"></div>
+            <div id="botModalMessage" class="modal-message"></div>
+            <div id="botModalButtons" class="modal-buttons"></div>
+        </div>
+    </div>
+
     <script>
         let sortOrder = 'asc';
         let jobsData = [];
-        let appliedJobs = new Set();
+        let statusInterval = null;
 
-        // Replace the createTableRow function with this updated version
+        function updateStatus(data) {
+            if (!data || !data.status) return;
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('statusText');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            if (data.status === 'running') {
+                badge.className = 'status-badge status-running';
+                text.textContent = 'Bot Running';
+                startBtn.disabled = true;
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-block';
+                document.getElementById('linkedinUsername').disabled = true;
+                document.getElementById('linkedinPassword').disabled = true;
+                if (!statusInterval) {
+                    startDialogPolling();
+                    statusInterval = setInterval(() => {
+                        fetch('/status').then(r => r.json()).then(d => {
+                            updateStatus(d);
+                            if (d.status === 'running') {
+                                loadJobs();
+                                checkBotDialog();
+                            } else {
+                                stopDialogPolling();
+                            }
+                        });
+                    }, 8000);
+                    checkBotDialog();
+                }
+            } else {
+                badge.className = 'status-badge status-idle';
+                text.textContent = 'Idle';
+                startBtn.disabled = false;
+                startBtn.style.display = 'inline-block';
+                stopBtn.style.display = 'none';
+                document.getElementById('linkedinUsername').disabled = false;
+                document.getElementById('linkedinPassword').disabled = false;
+                stopDialogPolling();
+                if (statusInterval) {
+                    clearInterval(statusInterval);
+                    statusInterval = null;
+                }
+            }
+        }
+
+        async function startBot() {
+            const username = document.getElementById('linkedinUsername').value.trim();
+            const password = document.getElementById('linkedinPassword').value;
+            const credError = document.getElementById('credError');
+
+            credError.style.display = 'none';
+            if (!username || !password) {
+                credError.textContent = 'Please enter your LinkedIn email and password.';
+                credError.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch('/start-bot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.error && res.status !== 200) {
+                    credError.textContent = data.error;
+                    credError.style.display = 'block';
+                    return;
+                }
+                updateStatus(data);
+                if (data.status === 'running') loadJobs();
+            } catch (e) {
+                console.error('Failed to start bot:', e);
+                credError.textContent = 'Failed to connect. Is the app running?';
+                credError.style.display = 'block';
+            }
+        }
+
+        async function stopBot() {
+            try {
+                const res = await fetch('/stop-bot', { method: 'POST' });
+                const data = await res.json();
+                updateStatus(data);
+                loadJobs();
+            } catch (e) {
+                console.error('Failed to stop bot:', e);
+            }
+        }
+
+        let dialogPollInterval = null;
+        function checkBotDialog() {
+            fetch('/bot/pending-dialog')
+                .then(r => r.json())
+                .then(dialog => {
+                    if (dialog && dialog.dialog_id) {
+                        showBotModal(dialog);
+                        if (dialogPollInterval) {
+                            clearInterval(dialogPollInterval);
+                            dialogPollInterval = null;
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function startDialogPolling() {
+            if (!dialogPollInterval) {
+                dialogPollInterval = setInterval(checkBotDialog, 1500);
+            }
+        }
+        function stopDialogPolling() {
+            if (dialogPollInterval) {
+                clearInterval(dialogPollInterval);
+                dialogPollInterval = null;
+            }
+        }
+
+        function showBotModal(dialog) {
+            const overlay = document.getElementById('botModalOverlay');
+            document.getElementById('botModalTitle').textContent = dialog.title;
+            document.getElementById('botModalMessage').textContent = dialog.message;
+            const btnContainer = document.getElementById('botModalButtons');
+            btnContainer.innerHTML = '';
+            const buttons = dialog.buttons || ['OK'];
+            buttons.forEach((btn) => {
+                const b = document.createElement('button');
+                b.textContent = btn;
+                const btnLower = btn.toLowerCase();
+                let cls = 'modal-btn modal-btn-secondary';
+                if (btnLower.includes('discard')) cls = 'modal-btn modal-btn-danger';
+                else if (btn === 'OK' || btnLower.includes('continue') || btnLower.includes("submit") || btnLower.includes("look's good")) cls = 'modal-btn modal-btn-primary';
+                b.className = cls;
+                b.onclick = () => sendDialogResponse(dialog.dialog_id, btn);
+                btnContainer.appendChild(b);
+            });
+            overlay.classList.add('show');
+        }
+
+        function sendDialogResponse(dialogId, response) {
+            fetch('/bot/respond', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dialog_id: dialogId, response })
+            }).then(() => {
+                document.getElementById('botModalOverlay').classList.remove('show');
+                checkBotDialog();
+            });
+        }
+
+        function loadJobs() {
+            fetch('/applied-jobs')
+                .then(response => {
+                    if (!response.ok) throw new Error(response.status === 404 ? 'No applications yet' : 'Failed to load');
+                    return response.json();
+                })
+                .then(jobs => {
+                    jobsData = Array.isArray(jobs) ? jobs : [];
+                    renderTable();
+                })
+                .catch(err => {
+                    jobsData = [];
+                    renderTable();
+                    console.error('Error:', err);
+                });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('jobsBody');
+            if (jobsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">No applications yet. Click "Start Auto Apply" to begin.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = '';
+            jobsData.forEach((job, index) => {
+                tbody.appendChild(createTableRow(job, index));
+            });
+        }
+
         function createTableRow(job, index) {
             const row = document.createElement('tr');
             
@@ -165,35 +562,27 @@
 
         function sortByExternalLink() {
             sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-            
             jobsData.sort((a, b) => {
                 const valueA = a.External_Job_link || '';
                 const valueB = b.External_Job_link || '';
-                
-                if (sortOrder === 'asc') {
-                    return valueA.localeCompare(valueB);
-                } else {
-                    return valueB.localeCompare(valueA);
-                }
+                return sortOrder === 'asc' ? valueA.localeCompare(valueB) : valueB.localeCompare(valueA);
             });
-            
-            const tbody = document.getElementById('jobsBody');
-            tbody.innerHTML = '';
-            jobsData.forEach((job, index) => {
-                tbody.appendChild(createTableRow(job, index));
-            });
+            renderTable();
         }
 
-        fetch('http://localhost:5000/applied-jobs')
-            .then(response => response.json())
-            .then(jobs => {
-                jobsData = jobs;
-                const tbody = document.getElementById('jobsBody');
-                jobs.forEach((job, index) => {
-                    tbody.appendChild(createTableRow(job, index));
-                });
-            })
-            .catch(error => console.error('Error:', error));
+        // Initial load - with error handling to prevent blank page
+        (function init() {
+            try {
+                fetch('/status')
+                    .then(r => r.json())
+                    .then(d => updateStatus(d || { status: 'idle' }))
+                    .catch(() => updateStatus({ status: 'idle' }));
+                loadJobs();
+            } catch (e) {
+                console.error('Init error:', e);
+                document.getElementById('jobsBody').innerHTML = '<tr><td colspan="6" class="empty-msg">Error loading. Make sure the app is running at http://localhost:5000</td></tr>';
+            }
+        })();
     </script>
 </body>
 </html>
