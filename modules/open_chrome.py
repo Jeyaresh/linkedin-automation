@@ -12,6 +12,7 @@ GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
 version:    24.12.29.12.30
 '''
 
+import os
 from modules.helpers import make_directories
 from config.settings import run_in_background, stealth_mode, disable_extensions, safe_mode, file_name, failed_file_name, logs_folder_path, generated_resume_path
 from config.questions import default_resume_path
@@ -31,8 +32,15 @@ try:
 
     # Set up WebDriver with Chrome Profile
     options = uc.ChromeOptions() if stealth_mode else Options()
-    if run_in_background:   options.add_argument("--headless")
+    if run_in_background:
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
     if disable_extensions:  options.add_argument("--disable-extensions")
+    # Cloud/Docker: use Chromium when CHROME_BIN is set
+    chrome_bin = os.environ.get("CHROME_BIN") or os.environ.get("GOOGLE_CHROME_BIN")
+    if chrome_bin: options.binary_location = chrome_bin
 
     print_lg("IF YOU HAVE MORE THAN 10 TABS OPENED, PLEASE CLOSE OR BOOKMARK THEM! Or it's highly likely that application will just open browser and not do anything!")
     if safe_mode: 
@@ -49,7 +57,11 @@ try:
             print_lg("Downloading Chrome Driver... This may take some time. Undetected mode requires download every run!")
             driver = uc.Chrome(options=options)
     else:
-        service = Service(ChromeDriverManager().install())
+        chromedriver_path = os.environ.get("CHROMEDRIVER_PATH")
+        if chromedriver_path:
+            service = Service(chromedriver_path)
+        else:
+            service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
     driver.maximize_window()
     wait = WebDriverWait(driver, 5)

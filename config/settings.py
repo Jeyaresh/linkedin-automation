@@ -11,7 +11,7 @@ GitHub:     https://github.com/GodsScion/Auto_job_applier_linkedIn
 
 version:    24.12.29.12.30
 '''
-
+import os
 
 ###################################################### CONFIGURE YOUR BOT HERE ######################################################
 
@@ -66,7 +66,8 @@ logs_folder_path = "logs/"
 click_gap = 0                       # Enter max allowed secs to wait approximately. (Only Non Negative Integers Eg: 0,1,2,3,....)
 
 # If you want to see Chrome running then set run_in_background as False (May reduce performance). 
-run_in_background = False           # True or False, Note: True or False are case-sensitive ,   If True, this will make pause_at_failed_question, pause_before_submit and run_in_background as False
+# When deployed to cloud (Railway, etc.), force headless mode
+run_in_background = bool(os.environ.get('RAILWAY_ENVIRONMENT')) or False           # True or False, Note: True or False are case-sensitive ,   If True, this will make pause_at_failed_question, pause_before_submit and run_in_background as False
 
 # If you want to disable extensions then set disable_extensions as True (Better for performance)
 disable_extensions = False          # True or False, Note: True or False are case-sensitive
