@@ -131,8 +131,8 @@ def start_bot():
             [python_cmd, 'runAiBot.py'],
             cwd=project_root,
             env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=None,
+            stderr=None,
             start_new_session=True
         )
         return jsonify({"message": "Auto-apply bot started", "status": "running"}), 200

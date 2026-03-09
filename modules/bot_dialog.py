@@ -1,12 +1,14 @@
 '''
 Bot dialog helper - shows dialogs via web UI when Flask is running, falls back to pyautogui otherwise.
 '''
+import os
 import time
 import urllib.request
 import urllib.error
 import json
 
-WEB_UI_URL = "http://127.0.0.1:5000"
+_PORT = os.environ.get('PORT', '5000')
+WEB_UI_URL = f"http://127.0.0.1:{_PORT}"
 
 
 def _try_web_dialog(dialog_type: str, title: str, message: str, buttons: list) -> str | None:
