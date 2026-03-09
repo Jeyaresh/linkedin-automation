@@ -1153,8 +1153,12 @@ def main() -> None:
         # Login to LinkedIn
         tabs_count = len(driver.window_handles)
         driver.get("https://www.linkedin.com/login")
-        if not is_logged_in_LN(): login_LN()
-        
+        if not is_logged_in_LN():
+            login_LN()
+            if not is_logged_in_LN() and os.environ.get('RAILWAY_ENVIRONMENT'):
+                print_lg("Stopping: LinkedIn login failed. Run the bot locally to complete login manually.")
+                return
+
         linkedIn_tab = driver.current_window_handle
 
         # # Login to ChatGPT in a new tab for resume customization
