@@ -1098,7 +1098,8 @@ def apply_to_jobs(search_terms: list[str]) -> None:
         except Exception as e:
             print_lg("Failed to find Job listings!")
             critical_error_log("In Applier", e)
-            print_lg(driver.page_source, pretty=True)
+            if not os.environ.get('RAILWAY_ENVIRONMENT'):
+                print_lg(driver.page_source, pretty=True)
             # print_lg(e)
 
         
@@ -1111,7 +1112,8 @@ def run(total_runs: int) -> int:
     print_lg(f"Currently looking for jobs posted within '{date_posted}' and sorting them by '{sort_by}'")
     apply_to_jobs(search_terms)
     print_lg("########################################################################################################################\n")
-    if not dailyEasyApplyLimitReached:
+    # Only sleep between cycles when running continuously (run_non_stop)
+    if run_non_stop and not dailyEasyApplyLimitReached:
         print_lg("Sleeping for 10 min...")
         sleep(300)
         print_lg("Few more min... Gonna start with in next 5 min...")
